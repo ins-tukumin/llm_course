@@ -23,15 +23,31 @@ import time
 global now
 now = datetime.datetime.now(pytz.timezone('Asia/Tokyo'))
 
+query_params = st.experimental_get_query_params()
+#st.write("クエリパラメータ:", query_params)
+user_id = query_params.get('user_id', [None])[0]
+group = query_params.get('group', [None])[0]
+is_second = 'second' in query_params
+#st.write(f"型: {type(user_id)}") 
+user_id = int(user_id)
+
+if "initialized" not in st.session_state:
+    st.session_state['initialized'] = False
+    initial_message = f"今回はあなたの、お悩みについて会話しましょう。気軽に話してね"
+    st.session_state.initge.append(initial_message)
+#    st.session_state.past.append("")
+#    message(st.session_state.initge[0], key="init_greeting", avatar_style="micah")
+    st.session_state['initialized'] = True
+
 # 環境変数の読み込み
 #from dotenv import load_dotenv
 #load_dotenv()
 
 #プロンプトテンプレートを作成
 template = """
-    この会話では私のお悩み相談に乗ってほしいです。悩みは進路関係に関するものです。
+    この会話では私のお悩み相談に乗ってほしいです。
     敬語は使わないでください。私の友達になったつもりで砕けた口調で話してください。
-    150~200字程度で話してください。
+    100字以内で話してください。
     日本語で話してください。
 """
 
@@ -139,7 +155,7 @@ def on_input_change():
     st.session_state.user_message = ""
     Human_Agent = "Human" 
     AI_Agent = "AI" 
-    doc_ref = db.collection(user_number).document(str(now))
+    doc_ref = db.collection(user_id).document(str(now))
     doc_ref.set({
         Human_Agent: user_message,
         AI_Agent: answer
@@ -154,9 +170,9 @@ def on_input_change():
 # st.title("ChatApp")
 # st.caption("Q&A")
 # st.write("議論を行いましょう！")
-user_number = st.text_input("IDを半角で入力してエンターを押してください")
-if user_number:
-    # st.write(f"こんにちは、{user_number}さん！")
+#user_id = st.text_input("IDを半角で入力してエンターを押してください")
+if user_id:
+    # st.write(f"こんにちは、{user_id}さん！")
     # 初期済みでない場合は初期化処理を行う
     if not firebase_admin._apps:
             private_key = st.secrets["private_key"].replace('\\n', '\n')
@@ -175,7 +191,7 @@ if user_number:
             }) 
             default_app = firebase_admin.initialize_app(cred)
     db = firestore.client()
-    #doc_ref = db.collection(user_number)
+    #doc_ref = db.collection(user_id)
     #doc_ref = db.collection(u'tour').document(str(now))
 
     # 会話履歴を表示するためのスペースを確保
@@ -183,6 +199,7 @@ if user_number:
 
     # 会話履歴を表示
     with chat_placeholder.container():
+        message(st.session_state.initge[0], key="init_greeting_plus", avatar_style="micah")
         for i in range(len(st.session_state.generated)):
             message(st.session_state.past[i],is_user=True, key=str(i), avatar_style="adventurer", seed="Nala")
             key_generated = str(i) + "keyg"
@@ -191,13 +208,13 @@ if user_number:
     # 質問入力欄と送信ボタンを設置
     with st.container():
         if  st.session_state.count == 0:
-            user_message = st.text_input("内容を入力して送信ボタンを押してください", key="user_message")
+            user_message = st.text_area("内容を入力して送信ボタンを押してください", key="user_message")
             st.button("送信", on_click=on_input_change)
         elif st.session_state.count >= 5:
             html_link = '<a href="https://nagoyapsychology.qualtrics.com/jfe/form/SV_eEVBQ7a0d8iVvq6" target="_blank">これで会話は終了です。こちらをクリックしてアンケートに回答してください。</a>'
             st.markdown(html_link, unsafe_allow_html=True)
         else:
-            user_message = st.text_input("内容を入力して送信ボタンを押してください", key="user_message")
+            user_message = st.text_area("内容を入力して送信ボタンを押してください", key="user_message")
             st.button("送信", on_click=on_input_change)
 # 質問入力欄 上とどっちが良いか    
 #if user_message := st.chat_input("聞きたいことを入力してね！", key="user_message"):
