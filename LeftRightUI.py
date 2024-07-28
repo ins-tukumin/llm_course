@@ -23,6 +23,9 @@ import time
 global now
 now = datetime.datetime.now(pytz.timezone('Asia/Tokyo'))
 
+if "generated" not in st.session_state:
+    st.session_state.initge = []
+
 query_params = st.experimental_get_query_params()
 #st.write("クエリパラメータ:", query_params)
 user_id = query_params.get('user_id', [None])[0]
